@@ -1,0 +1,82 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec 30 03:06:41 2022
+
+@author: Bassel
+"""
+import random
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def sol(points):
+    points_in=np.asarray(points)
+    n_dots=points_in.shape[1]
+    cond=points_in[0,0]-points_in[0,1]>0
+    p1=np.array([points_in[0,0],points_in[1,0],points_in[2,0]])
+    points_sh=np.insert(points_in.T,0,p1,axis=0).T
+    points_extended=np.insert(points_in.T,n_dots,p1,axis=0).T
+    points_vec=points_extended[:,1:]-points_sh[:,1:]
+    mul=points_vec*points_vec
+    points_vec[2]=np.sqrt(mul[0]+mul[1])*np.tan(np.deg2rad(-45))
+    points_abs=np.linalg.norm(points_vec,axis=0)
+    points_vec_normalized=points_vec/points_abs
+    if cond:
+        points_vec_normalized_rotated=np.array(-[points_vec_normalized[1],points_vec_normalized[0],points_vec_normalized[2]])
+    else:
+        points_vec_normalized_rotated=np.array([points_vec_normalized[1],-points_vec_normalized[0],points_vec_normalized[2]])
+    out=np.insert(points_in, 3, points_vec_normalized_rotated,axis=0)
+    out_aligned=np.array([out[0,:],out[1,:],out[2,:],out[5,:],out[4,:],out[3,:]])
+    return out
+
+table_coords = np.array([
+    [-200,200,50],
+    [200,200,50],
+    [200,-200,50],
+    [-200,-200,50]
+])
+table_plot = np.stack([
+    table_coords[0],
+    table_coords[1],
+    table_coords[2],
+    table_coords[3],
+    table_coords[0],
+    table_coords[2],
+    table_coords[1],
+    table_coords[3],
+])
+
+r = 75
+cx, cy, cz = 0, 0, 50
+n_dots = 72
+rs = [r * random.randint(90,110)/100 for _ in range(n_dots)]
+hs = [random.randint(0,10)/10 for _ in range(n_dots)]
+points_in = np.array([
+    [
+        cx + r*np.sin(np.deg2rad(angle)),
+        cy + r*np.cos(np.deg2rad(angle)),
+        50 + h
+    ] for angle, r, h in zip(range(0, 360, int(360/n_dots)), rs, hs)
+]).T
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+ax.scatter(table_coords[:,0], table_coords[:,1], table_coords[:,2], c='g')
+ax.plot(table_plot[:,0], table_plot[:,1], table_plot[:,2], c='g')
+
+ax.scatter(cx, cy, cz, c='r')
+ax.scatter(cx, cy, cz+20, c='r', alpha=0)
+ax.scatter(points_in[0], points_in[1], points_in[2], c='b')
+
+#calculate end effector position and orientation
+out=sol(points_in)
+v=50
+ax.scatter(out[0,0], out[1,0], out[2,0], c='k')
+ax.scatter(points_in[0,1], points_in[1,1], points_in[2,1], c='r')
+for dot in out.T:
+    cx, cy, cz, vx, vy, vz = dot
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.plot([cx, cx+vx], [cy, cy+vy], [cz, cz+vz], c='r')
